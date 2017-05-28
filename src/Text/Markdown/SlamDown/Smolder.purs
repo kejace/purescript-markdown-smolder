@@ -21,7 +21,7 @@ import Data.String.Regex (regex, replace)
 import Data.String.Regex.Flags (global)
 import Data.Tuple (fst, snd)
 import Data.Unit (unit)
-import Prelude ((||))
+import Prelude ((||), discard)
 import Text.Markdown.SlamDown (Block(..), Inline(..), LinkTarget(..), ListType(..), SlamDownP(..))
 import Text.Smolder.HTML (a, blockquote, code, em, hr, img, li, ol, p, pre, strong, ul)
 import Text.Smolder.HTML.Attributes (alt, href, src)
@@ -38,13 +38,13 @@ toMarkup (SlamDown bs) = replaceLinkRefs (snd markupState) (fst markupState)
 
 replaceLinkRefs :: forall e. ReferenceLinks -> Markup e -> Markup e
 replaceLinkRefs refs (Element n c a e r) =
-  if n == "a" then
+-- if n == "a" then
     let
       ref = getLinkRef a
     in
       Element n c a e (replaceLinkRefs refs r) ! href (fromMaybe ref (SM.lookup ref refs))
-    else
-      Element n (map (replaceLinkRefs refs) c) a e (replaceLinkRefs refs r)
+--  else
+--      Element n (map (replaceLinkRefs refs) c) a e (replaceLinkRefs refs r)
 replaceLinkRefs refs (Content s r) = Content s (replaceLinkRefs refs r)
 replaceLinkRefs refs markup = markup
 
@@ -101,7 +101,7 @@ isParagraph (Element n _ _ _ _) = n == "p"
 isParagraph _ = false
 
 getChild :: forall e. Markup e -> Maybe (Markup e)
-getChild (Element n c a e r) = c
+getChild (Element n c a e r) = Just c
 getChild _ = Nothing
 
 toElement :: forall a e. Block a -> MarkupState e
@@ -114,16 +114,16 @@ toElement block =
       children <- toInlineElements is
       case (regex "[^\\w -]" global) of
         Left _ ->
-          pure $ Element ("h" <> show n) (Just children) (empty) empty (Return unit)
+          pure $ Element ("h" <> show n) children (empty) empty (Return unit)
         Right pattern -> do
           let id = replaceSpaces $ stripInvalidChars $ textFromElement "" children
               replaceSpaces = replaceAll (Pattern " ") (Replacement "_")
               stripInvalidChars = replace pattern ""
               textFromElement txt (Element _ c _ _ r) =
-                maybe "" (textFromElement txt) c <> txt <> textFromElement txt r
+                maybe "" (textFromElement txt) (Just c) <> txt <> textFromElement txt r
               textFromElement txt (Content s r) = txt <> s <> textFromElement txt r
               textFromElement txt (Return _) = txt
-          pure $ Element ("h" <> show n) (Just children) (cons (Attr "id" id) empty) empty (Return unit)
+          pure $ Element ("h" <> show n) children (cons (Attr "id" id) empty) empty (Return unit)
     (Blockquote bs) -> do
       children <- toElements bs
       pure $ blockquote children
