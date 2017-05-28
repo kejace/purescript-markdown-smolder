@@ -19,7 +19,7 @@
   "ignore": ["node_modules", "bower_components"],
   "homepage": "",
   "dependencies": {
-    "purescript-markdown": "^10.0.0",
+    "purescript-markdown": "^11.0.0",
     "purescript-smolder": "^9.0.0"
   }
 }
